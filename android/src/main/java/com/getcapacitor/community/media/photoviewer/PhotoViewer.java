@@ -3,6 +3,11 @@ package com.getcapacitor.community.media.photoviewer;
 import android.content.Context;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
 import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.JSArray;
@@ -12,11 +17,11 @@ import com.getcapacitor.community.media.photoviewer.fragments.GalleryFullscreenF
 import com.getcapacitor.community.media.photoviewer.fragments.ImageFragment;
 import com.getcapacitor.community.media.photoviewer.fragments.MainFragment;
 import java.util.ArrayList;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
 public class PhotoViewer extends BridgeActivity {
-
     private static final String TAG = "CapacitorPhotoViewer";
     private Context context;
     private int frameLayoutViewId = 8256;
@@ -86,6 +91,19 @@ public class PhotoViewer extends BridgeActivity {
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             );
+
+            // account for edge-to-edge top statusbar, buttons should not overlap the statusbar
+            ViewCompat.setOnApplyWindowInsetsListener(frameLayoutView, (v, windowInsets) -> {
+              Insets sb = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
+              v.setPadding(
+                v.getPaddingLeft(),
+                sb.top,
+                v.getPaddingRight(),
+                v.getPaddingBottom()
+              );
+              return windowInsets;  // pass through if children need it too
+            });
+
             // Apply the Layout Parameters to frameLayout
             frameLayoutView.setLayoutParams(lp);
             // Add FrameLayout to bridge_layout_main
