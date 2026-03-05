@@ -1,6 +1,7 @@
 package com.getcapacitor.community.media.photoviewer;
 
 import android.content.Context;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
@@ -54,19 +55,40 @@ public class PhotoViewer extends BridgeActivity {
         }
     }
 
-    private void createMainFragment(ArrayList<Image> imageList, JSObject options) throws Exception {
+    private FrameLayout prepareContainer() throws Exception {
         try {
-            // Initialize a new FrameLayout as container for fragment
+            ViewGroup root = (ViewGroup) bridge.getWebView().getParent();
+            if (root == null) {
+                throw new Exception("WebView parent is null");
+            }
+
+            // Cleanup previously leaked containers (same fixed ID), otherwise fragment may attach
+            // to an older container that ended up below WebView after camera preview actions.
+            for (int i = root.getChildCount() - 1; i >= 0; i--) {
+                View child = root.getChildAt(i);
+                if (child != null && child.getId() == frameLayoutViewId) {
+                    root.removeViewAt(i);
+                }
+            }
+
             FrameLayout frameLayoutView = new FrameLayout(context);
             frameLayoutView.setId(frameLayoutViewId);
             FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             );
-            // Apply the Layout Parameters to frameLayout
             frameLayoutView.setLayoutParams(lp);
-            // Add FrameLayout to bridge_layout_main
-            ((ViewGroup) bridge.getWebView().getParent()).addView(frameLayoutView);
+            root.addView(frameLayoutView);
+            frameLayoutView.bringToFront();
+            return frameLayoutView;
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
+        }
+    }
+
+    private void createMainFragment(ArrayList<Image> imageList, JSObject options) throws Exception {
+        try {
+            prepareContainer();
             final MainFragment mainFragment = new MainFragment();
             mainFragment.setImageList(imageList);
             mainFragment.setOptions(options);
@@ -84,13 +106,7 @@ public class PhotoViewer extends BridgeActivity {
 
     private void createImageFragment(ArrayList<Image> imageList, Integer startFrom, JSObject options) throws Exception {
         try {
-            // Initialize a new FrameLayout as container for fragment
-            FrameLayout frameLayoutView = new FrameLayout(context);
-            frameLayoutView.setId(frameLayoutViewId);
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-            );
+            FrameLayout frameLayoutView = prepareContainer();
 
             // account for edge-to-edge top statusbar, buttons should not overlap the statusbar
             ViewCompat.setOnApplyWindowInsetsListener(frameLayoutView, (v, windowInsets) -> {
@@ -104,10 +120,6 @@ public class PhotoViewer extends BridgeActivity {
               return windowInsets;  // pass through if children need it too
             });
 
-            // Apply the Layout Parameters to frameLayout
-            frameLayoutView.setLayoutParams(lp);
-            // Add FrameLayout to bridge_layout_main
-            ((ViewGroup) bridge.getWebView().getParent()).addView(frameLayoutView);
             final ImageFragment imageFragment = new ImageFragment();
             imageFragment.setImage(imageList.get(startFrom));
             imageFragment.setOptions(options);
@@ -126,17 +138,7 @@ public class PhotoViewer extends BridgeActivity {
 
     private void createSliderFragment(ArrayList<Image> imageList, Integer startFrom, JSObject options) throws Exception {
         try {
-            // Initialize a new FrameLayout as container for fragment
-            FrameLayout frameLayoutView = new FrameLayout(context);
-            frameLayoutView.setId(frameLayoutViewId);
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-            );
-            // Apply the Layout Parameters to frameLayout
-            frameLayoutView.setLayoutParams(lp);
-            // Add FrameLayout to bridge_layout_main
-            ((ViewGroup) bridge.getWebView().getParent()).addView(frameLayoutView);
+            prepareContainer();
             final GalleryFullscreenFragment galleryFragment = new GalleryFullscreenFragment();
             galleryFragment.setImageList(imageList);
             galleryFragment.setStartFrom(startFrom);
